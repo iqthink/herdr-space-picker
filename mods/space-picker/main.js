@@ -46,12 +46,13 @@ export default class SpacePicker extends View {
       if (shared(FAVORITES) == null) setShared(FAVORITES, roots.filter(p => found.includes(p)).slice(0, 6));
       this.loading = false;
       this.refresh(cx);
+      this.loadIndex(roots.filter(p => found.includes(p)), cx);
     });
   }
 
-  async request(path, mode = 'list') {
+  async request(path, mode = 'list', options = '') {
     try {
-      const result = await exec('python3', [appHome() + '/mods/space-picker/folders.py', path, mode]);
+      const result = await exec('python3', [appHome() + '/mods/space-picker/folders.py', path, mode, options]);
       if (result.code === 127) this.runtimeError = 'Python 3 is required. Install it and reopen the picker.';
       if (result.code !== 0) return null;
       this.runtimeError = '';
@@ -64,6 +65,26 @@ export default class SpacePicker extends View {
 
   directories(path) {
     return this.request(path);
+  }
+
+  loadIndex(roots, cx, refresh = false) {
+    this.searchRoots = roots;
+    this.indexing = true;
+    cx.notify();
+    const options = JSON.stringify({
+      roots: [...new Set([...roots, ...saved(FAVORITES), ...saved(RECENTS)])],
+      cache: appHome() + '/data/space-picker-index.json',
+      ttl: refresh ? 0 : 60,
+    });
+    cx.spawn(async cx => {
+      const result = await this.request(this.home, 'index', options);
+      if (result) {
+        this.index = [...new Set([...this.index, ...result.paths])];
+        this.indexLimited = result.limited;
+      }
+      this.indexing = false;
+      cx.notify();
+    });
   }
 
   refresh(cx) {
@@ -171,11 +192,10 @@ export default class SpacePicker extends View {
       .bg(primary ? t.solid : t.raised).text_color(primary ? t.solid_foreground : t.foreground)
       .cursor_pointer().hover(s => s.opacity(0.85)).on_click(action).child(text);
     let previous = '';
-    const start = Math.floor(this.at / 6) * 6;
     const items = rows.map((row, i) => {
-      const heading = row.group !== previous || i === start;
+      const heading = row.group !== previous;
       previous = row.group;
-      return v_flex().h(heading ? 60 : 36).when(heading, el => el.child(div().h(24).px(8).pt(6).text_size(11).text_color(t.dim).child(row.group)))
+      return v_flex().flex_none().h(heading ? 60 : 36).when(heading, el => el.child(div().h(24).px(8).pt(6).text_size(11).text_color(t.dim).child(row.group)))
         .child(h_flex().id('folder-' + i).h(36).px(8).gap(8).items_center().rounded(7)
           .when(i === this.at, el => el.bg(t.selected)).hover(s => s.bg(t.hover))
           .child(div().id('open-' + i).flex_1().truncate().cursor_pointer().on_click((_e, cx) => this.open(row.path, cx))
@@ -201,13 +221,16 @@ export default class SpacePicker extends View {
         .child(div().text_size(11).text_color(t.dim).child('Esc to cancel')))
       .child(div().text_color(t.muted).child('Choose where your terminal starts.'))
       .child(Input.new(this.input).h(38).flex_none().px(10).rounded(8).border_1().border_color(t.accent).bg(t.background).text_color(t.foreground))
-      .child(v_flex().flex_1().min_h(0).overflow_y_scrollbar().children(items.slice(start, start + 6))
-        .when(!rows.length, el => el.child(div().p(12).text_color(t.dim).child(this.loading || this.loadingPath ? 'Loading folders…' : 'No matches. Type a full path or browse.'))))
+      .child(v_flex().id('folder-results-' + this.query).flex_1().min_h(0).overflow_y_scrollbar().children(items)
+        .when(!rows.length, el => el.child(div().p(12).text_color(t.dim).child(this.loading || this.loadingPath || this.indexing ? 'Searching folders…' : 'No matches. Type a full path or browse.'))))
       .when(Boolean(this.error || this.runtimeError), el => el.child(div().text_size(12).text_color(t.blocked).child(this.runtimeError || this.error)))
-      .when(rows.length > 6, el => el.child(h_flex().gap(10).items_center()
-        .child(button('previous-page', '‹', false, (_e, cx) => { this.at = Math.max(0, this.at - 6); this.chosen = true; cx.notify(); }))
-        .child(div().flex_1().text_size(11).text_color(t.dim).child(`${start + 1}–${Math.min(start + 6, rows.length)} of ${rows.length}`))
-        .child(button('next-page', '›', false, (_e, cx) => { this.at = Math.min(rows.length - 1, this.at + 6); this.chosen = true; cx.notify(); }))))
+      .child(h_flex().gap(8).items_center().text_size(11).text_color(t.dim)
+        .child(div().flex_none().child(this.indexing ? 'Searching folders…' : `${rows.length}${rows.length === 60 ? '+' : ''} ${this.query ? 'matches' : 'folders'}`))
+        .when(Boolean(this.chosen && rows[this.at]), el => el.child(div().flex_1().truncate().text_color(t.foreground).child(display(rows[this.at].path, this.home))))
+        .when(Boolean(this.indexLimited && !this.indexing && !this.chosen), el => el.child(div().flex_1().truncate().child('Search limited · type a path to browse further')))
+        .child(div().flex_1())
+        .when(Boolean(this.searchRoots && !this.indexing), el => el.child(div().id('refresh-search').cursor_pointer().text_color(t.muted)
+          .hover(s => s.text_color(t.foreground)).on_click((_e, cx) => this.loadIndex(this.searchRoots, cx, true)).child('Refresh'))))
       .child(div().text_size(11).text_color(t.dim).child('↑ ↓ Select    Tab / › Browse deeper    Enter Open    ☆ Favorite'))
       .child(h_flex().gap(8).items_center()
         .child(button('browse', 'Browse…', false, (_e, cx) => this.browse(cx)))

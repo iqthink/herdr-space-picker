@@ -31,3 +31,16 @@ test('search deduplicates, matches multiple words and ranks folder-name prefixes
   assert.deepEqual(search(paths, 'CODE APP', home).length, 2);
   assert.deepEqual(search(paths, 'missing', home), []);
 });
+
+
+test('deep folder search tolerates omitted letters and ranks literal matches first', () => {
+  const fuzzy = home + '/hq/company/clients/waterstone-studio';
+  const literal = home + '/notes/waterstne';
+  assert.deepEqual(search([fuzzy, literal], 'waterstne', home), [literal, fuzzy]);
+  assert.deepEqual(search([fuzzy], 'clients waterstne', home), [fuzzy]);
+});
+
+test('fuzzy tokens cannot stitch letters across unrelated directory segments', () => {
+  assert.deepEqual(search([home + '/water/stne'], 'waterstne', home), []);
+  assert.deepEqual(search([home + '/project'], 'pj', home), []);
+});

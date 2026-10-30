@@ -15,7 +15,8 @@ One standalone folder-picker mod for the new Herdr desktop app, tested on macOS 
 - Python 3 through exec with separate argv is intentional: Herdr 0.1.9 fs/promises is home-scoped and its isDirectory ignores symlinked directories. Confirmed against app source, not just inferred.
 - Paths keep . and .. until OS traversal; store friendly chosen paths and canonical identities separately.
 - Discovery is bounded. Async completion ignores stale responses; creation captures targets before await. run() returns null, not startup confirmation.
-- VirtualListScrollHandle.new() panicked in the 0.1.9 checker. Six-row pagination is the working implementation.
+- VirtualListScrollHandle.new() panicked in the 0.1.9 checker. Use ordinary overflow_y_scrollbar scrolling; echo keyboard selection in the footer. Do not restore pagination.
+- Name indexing is bounded, cached locally for one minute, skips hidden/dependency dirs, and defers archives. Generic omitted-letter matching lives in paths.js; do not add folder-specific exceptions.
 - The helper path contains the mod folder name; update it if renaming the mod.
 
 ## Distribution and integration

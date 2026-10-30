@@ -45,9 +45,9 @@ The default installation leaves Herdr's + controls unchanged. Personal copies ne
 
 ## Use
 
-- Type a name to search home folders and immediate children of common project roots.
+- Type a name to search nested folders under common project roots, favorites, and recent choices. Exact matches rank first; omitted letters can still match (for example, `prjct` matches `project`).
 - Type `/…` or `~/…` to complete paths at any depth. Hidden directories appear when the current prefix starts with a dot.
-- Use ↑/↓ to select, Tab or › to browse deeper, and Enter to open. PageUp/PageDown or the page buttons move through results.
+- Use ↑/↓ to select, Tab or › to browse deeper, and Enter to open. Scroll to see more results; PageUp/PageDown move the keyboard selection six rows. The selected path is also shown below the list.
 - A readable typed path opens directly; an incomplete path falls back to the highlighted completion. Selecting with the keyboard takes precedence.
 - Click ☆ to favorite a folder and ★ to unpin it. Up to 12 recent creation requests are remembered.
 - Browse… opens the system folder browser. Cancel/Escape creates no space.
@@ -55,6 +55,8 @@ The default installation leaves Herdr's + controls unchanged. Personal copies ne
 ## Local data and limits
 
 Favorites, recents, and canonical identities live in Herdr shared state under `space-picker.favorites`, `space-picker.recents`, and `space-picker.identities`. User state is not included in this repository.
+
+Name discovery runs in the background and caches folder paths locally for one minute in `data/space-picker-index.json`. Refresh rebuilds it. It skips hidden and dependency folders, searches active folders before archives, and stops at 10 levels, 20,000 paths, about 4 MB of path names, or four seconds. A limited-search notice appears when a bound is reached; full-path completion and Browse… remain available. Name results show the best 60 matches.
 
 The Python helper follows directory symlinks, accepts paths outside home, and uses separate arguments rather than shell interpolation. Each scan has a five-second timeout; Herdr also bounds program execution. Recents retain the selected path while canonical identities deduplicate aliases.
 

@@ -22,10 +22,27 @@ export function completion(value, home) {
 
 export function search(paths, query, home) {
   const tokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
-  return [...new Set(paths)].filter(path => tokens.every(token => display(path, home).toLowerCase().includes(token)))
-    .sort((a, b) => {
-      const leaf = p => p.split('/').pop().toLowerCase();
-      const q = query.trim().toLowerCase();
-      return Number(leaf(b).startsWith(q)) - Number(leaf(a).startsWith(q)) || a.localeCompare(b);
-    });
+  const ranked = [];
+  for (const path of new Set(paths)) {
+    const text = display(path, home).toLowerCase();
+    let fuzzy = 0;
+    let matched = true;
+    for (const token of tokens) {
+      if (text.includes(token)) continue;
+      // Match missing letters within a single folder segment, not across unrelated parents.
+      if (token.length < 3 || !text.split('/').some(segment => subsequence(token, segment))) {
+        matched = false; break;
+      }
+      fuzzy++;
+    }
+    if (matched) ranked.push({ path, fuzzy, prefix: text.split('/').pop().startsWith(query.trim().toLowerCase()) });
+  }
+  return ranked.sort((a, b) => a.fuzzy - b.fuzzy || Number(b.prefix) - Number(a.prefix) || a.path.localeCompare(b.path))
+    .map(result => result.path);
+}
+
+function subsequence(needle, text) {
+  let at = 0;
+  for (const character of text) if (character === needle[at]) at++;
+  return at === needle.length;
 }
