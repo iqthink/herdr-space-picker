@@ -2,7 +2,7 @@
 
 Investigated 2026-10-30 against desktop app 0.1.9, source commit
 [`3e32d75`](https://github.com/herdrdev/herdr-app/tree/3e32d75e7aa2327d7b1f89caf3d5dafd1f44f1b2).
-This is a release recommendation and an upstream discussion draft, not an implemented extension API.
+This is a release recommendation and the background for [upstream issue #106](https://github.com/herdrdev/herdr-app/issues/106), not an implemented extension API.
 
 ## Recommendation
 
@@ -12,8 +12,9 @@ Herdr's **shipped `spaces` JavaScript mod** that lets it render optional configu
 actions. The existing shared-state and command APIs can carry the configuration; a new
 Rust-core plugin framework is not the first thing to build.
 
-This is a proposal requiring upstream agreement. Installing the picker currently does
-not create an inline button. No issue, PR, or public repository has been submitted.
+This is a proposal requiring upstream agreement. The default picker installation does not create an inline button. The mod is published at
+https://github.com/jeissonneira/herdr-space-picker and the discussion was submitted as
+[issue #106](https://github.com/herdrdev/herdr-app/issues/106). No upstream implementation PR has been submitted.
 
 ## What the source establishes
 
@@ -91,7 +92,7 @@ The maintainer added a targeted replacement mechanism, but merging contributions
 several mods was explicitly left out. That shows a willingness to address a missing
 surface, not an assurance that the proposed header-action design will be accepted.
 
-## Draft issue: optional mod actions in the Spaces header
+## Submitted proposal: optional mod actions in the Spaces header
 
 **Problem:** A standalone mod can open a folder picker through mod.open and a shortcut,
 but cannot expose a small discoverable action beside Spaces/+ on the shipped main layout.
@@ -117,5 +118,6 @@ for otherwise self-contained mods.
 The shortcut-based package can be reviewed and shared independently of upstream work.
 Before claiming broad compatibility, test another macOS installation, make the Python 3
 prerequisite explicit, and either test Linux or continue labeling it macOS-tested/POSIX-only.
-Windows and remote paths need separate implementation and validation. Public publication
-and sending the upstream discussion are separate actions and have not been done.
+Windows and remote paths need separate implementation and validation. The public repository has the herdr-mod topic for automatic directory discovery, and
+the upstream discussion is [issue #106](https://github.com/herdrdev/herdr-app/issues/106).
+Directory indexing and maintainer acceptance are separate from publication.

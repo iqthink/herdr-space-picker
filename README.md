@@ -75,7 +75,7 @@ Restore the individual shortcut you changed, then remove `mods/space-picker/` fr
 
 ## Distribution
 
-This repository contains one mod, a recipe, a preview, and an optional keys snippet. Publish to GitHub with topic `herdr-mod` for Herdr's Mods directory. No custom layout is required. The public repository is https://github.com/jeissonneira/herdr-space-picker. Herdr discovers it through the herdr-mod GitHub topic; marketplace indexing is separate from publication.
+This repository contains one mod, a recipe, a preview, and an optional keys snippet. Publish to GitHub with topic `herdr-mod` for Herdr's Mods directory. No custom layout is required. The public repository is https://github.com/jeissonneira/herdr-space-picker. Herdr discovers it through the herdr-mod GitHub topic; marketplace indexing is separate from publication. The proposed inline integration is tracked in [herdr-app#106](https://github.com/herdrdev/herdr-app/issues/106).
 
 ## License
 
