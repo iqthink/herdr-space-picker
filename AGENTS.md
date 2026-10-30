@@ -16,6 +16,7 @@ One standalone folder-picker mod for the new Herdr desktop app, tested on macOS 
 - Paths keep . and .. until OS traversal; store friendly chosen paths and canonical identities separately.
 - Discovery is bounded. Async completion ignores stale responses; creation captures targets before await. run() returns null, not startup confirmation.
 - VirtualListScrollHandle.new() panicked in the 0.1.9 checker. Use ordinary overflow_y_scrollbar scrolling; echo keyboard selection in the footer. Do not restore pagination.
+- Herdr 0.1.9 interrupts render/layout after 50 ms (events/tasks: 500 ms). Search must run when inputs change and cache rows; render and selection handlers read the cached list. Keep ranking bounded to 60 matches and avoid localeCompare in bulk matching. A native checker stress probe with 20,000 fuzzy matches verified this fix.
 - Name indexing is bounded, cached locally for one minute, skips hidden/dependency dirs, and defers archives. Generic omitted-letter matching lives in paths.js; do not add folder-specific exceptions.
 - The helper path contains the mod folder name; update it if renaming the mod.
 

@@ -20,25 +20,35 @@ export function completion(value, home) {
   return { dir: path.slice(0, slash) || '/', prefix: path.slice(slash + 1).toLowerCase() };
 }
 
-export function search(paths, query, home) {
-  const tokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
-  const ranked = [];
+// Ranks by fewest fuzzy tokens, then folder-name prefix, then path. Keeps only the best `limit`
+// matches (insertion into a small sorted list) so large indexes are never fully sorted.
+export function search(paths, query, home, limit = Infinity) {
+  const needle = query.trim().toLowerCase();
+  const tokens = needle.split(/\s+/).filter(Boolean);
+  const best = [];
+  const compare = (a, b) => a.fuzzy - b.fuzzy || b.prefix - a.prefix || (a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
   for (const path of new Set(paths)) {
     const text = display(path, home).toLowerCase();
+    const segments = text.split('/');
     let fuzzy = 0;
     let matched = true;
     for (const token of tokens) {
       if (text.includes(token)) continue;
       // Match missing letters within a single folder segment, not across unrelated parents.
-      if (token.length < 3 || !text.split('/').some(segment => subsequence(token, segment))) {
+      if (token.length < 3 || !segments.some(segment => subsequence(token, segment))) {
         matched = false; break;
       }
       fuzzy++;
     }
-    if (matched) ranked.push({ path, fuzzy, prefix: text.split('/').pop().startsWith(query.trim().toLowerCase()) });
+    if (!matched) continue;
+    const result = { path, fuzzy, prefix: Number(segments[segments.length - 1].startsWith(needle)) };
+    if (best.length >= limit && compare(result, best[best.length - 1]) >= 0) continue;
+    let at = best.length;
+    while (at > 0 && compare(result, best[at - 1]) < 0) at--;
+    best.splice(at, 0, result);
+    if (best.length > limit) best.pop();
   }
-  return ranked.sort((a, b) => a.fuzzy - b.fuzzy || Number(b.prefix) - Number(a.prefix) || a.path.localeCompare(b.path))
-    .map(result => result.path);
+  return best.map(result => result.path);
 }
 
 function subsequence(needle, text) {

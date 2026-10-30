@@ -6,6 +6,7 @@ import { normalize, display, completion, search } from './paths.js';
 const FAVORITES = 'space-picker.favorites';
 const RECENTS = 'space-picker.recents';
 const IDENTITIES = 'space-picker.identities';
+const LIMIT = 60;
 const ROOTS = ['code', 'hq', 'hq-os', 'work', 'life', 'notes', 'Documents', 'Desktop'];
 const saved = key => (Array.isArray(shared(key)) ? shared(key).filter(p => typeof p === 'string' && p.startsWith('/')) : []);
 
@@ -15,6 +16,7 @@ export default class SpacePicker extends View {
     this.query = '';
     this.index = [this.home];
     this.matches = [];
+    this.list = this.buildRows();
     this.at = 0;
     this.version = 0;
     this.loading = true;
@@ -81,6 +83,7 @@ export default class SpacePicker extends View {
       if (result) {
         this.index = [...new Set([...this.index, ...result.paths])];
         this.indexLimited = result.limited;
+        this.list = this.buildRows();
       }
       this.indexing = false;
       cx.notify();
@@ -92,6 +95,7 @@ export default class SpacePicker extends View {
     const target = completion(this.query, this.home);
     this.matches = [];
     this.loadingPath = false;
+    this.list = this.buildRows();
     if (!target) { cx.notify(); return; }
     this.loadingPath = true;
     cx.spawn(async cx => {
@@ -102,18 +106,24 @@ export default class SpacePicker extends View {
         return name.startsWith(target.prefix) && (!name.startsWith('.') || target.prefix.startsWith('.'));
       });
       this.loadingPath = false;
+      this.list = this.buildRows();
       cx.notify();
     });
     cx.notify();
   }
 
-  rows() {
+  // Searches the whole index: call when inputs change and store in this.list; never from render or key handlers.
+  buildRows() {
     const favorites = saved(FAVORITES);
     const recents = saved(RECENTS);
     if (this.query.trim()) {
-      const candidates = [...favorites, ...recents, ...this.index].filter(p => this.query.includes('.') || !p.split('/').some(part => part.startsWith('.')));
-      const paths = completion(this.query, this.home) ? this.matches : search(candidates, this.query, this.home);
-      return paths.slice(0, 60).map(path => ({ path, group: 'Matches' }));
+      let paths = this.matches;
+      if (!completion(this.query, this.home)) {
+        const showHidden = this.query.includes('.');
+        const candidates = [...favorites, ...recents, ...this.index].filter(p => showHidden || !p.includes('/.'));
+        paths = search(candidates, this.query, this.home, LIMIT);
+      }
+      return paths.slice(0, LIMIT).map(path => ({ path, group: 'Matches' }));
     }
     const seen = new Set();
     const rows = [];
@@ -125,11 +135,11 @@ export default class SpacePicker extends View {
 
   selected() {
     // A fully typed absolute path takes precedence on Enter.
-    return (this.chosen ? this.rows()[this.at]?.path : normalize(this.query, this.home)) ?? this.rows()[this.at]?.path;
+    return (this.chosen ? this.list[this.at]?.path : normalize(this.query, this.home)) ?? this.list[this.at]?.path;
   }
 
   complete(cx) {
-    const path = this.rows()[this.at]?.path;
+    const path = this.list[this.at]?.path;
     if (path) {
       this.chosen = false;
       this.input.set_value(path === '/' ? '/' : display(path, this.home) + '/');
@@ -140,6 +150,7 @@ export default class SpacePicker extends View {
   star(path) {
     const favorites = saved(FAVORITES);
     setShared(FAVORITES, favorites.includes(path) ? favorites.filter(p => p !== path) : [...favorites, path]);
+    this.list = this.buildRows();
   }
 
   open(path, cx) {
@@ -147,7 +158,7 @@ export default class SpacePicker extends View {
     this.busy = true;
     this.error = '';
     // Capture the target before validation: edits during I/O cannot change this request.
-    const fallback = !this.chosen && path === normalize(this.query, this.home) ? this.rows()[this.at]?.path : null;
+    const fallback = !this.chosen && path === normalize(this.query, this.home) ? this.list[this.at]?.path : null;
     const overlay = props().overlay;
     cx.notify();
     cx.spawn(async cx => {
@@ -185,7 +196,7 @@ export default class SpacePicker extends View {
 
   render() {
     const t = theme();
-    const rows = this.rows();
+    const rows = this.list;
     this.at = Math.max(0, Math.min(this.at, rows.length - 1));
     const favorites = saved(FAVORITES);
     const button = (id, text, primary, action) => h_flex().id(id).h(32).px(12).items_center().rounded(7)
@@ -208,9 +219,9 @@ export default class SpacePicker extends View {
     return v_flex().id('space-picker').track_focus(this.handle).w_full().h_full().p(20).gap(10).bg(t.popover).text_color(t.foreground).text_size(13)
       .on_key_down((e, cx) => {
         if (e.key === 'escape') closeOverlay(props().overlay);
-        else if (e.key === 'down') { this.at = Math.min(this.rows().length - 1, this.at + 1); this.chosen = true; }
+        else if (e.key === 'down') { this.at = Math.min(this.list.length - 1, this.at + 1); this.chosen = true; }
         else if (e.key === 'up') { this.at = Math.max(0, this.at - 1); this.chosen = true; }
-        else if (e.key === 'pagedown') { this.at = Math.min(this.rows().length - 1, this.at + 6); this.chosen = true; }
+        else if (e.key === 'pagedown') { this.at = Math.min(this.list.length - 1, this.at + 6); this.chosen = true; }
         else if (e.key === 'pageup') { this.at = Math.max(0, this.at - 6); this.chosen = true; }
         else if (e.key === 'tab') this.complete(cx);
         else return;
@@ -225,7 +236,7 @@ export default class SpacePicker extends View {
         .when(!rows.length, el => el.child(div().p(12).text_color(t.dim).child(this.loading || this.loadingPath || this.indexing ? 'Searching folders…' : 'No matches. Type a full path or browse.'))))
       .when(Boolean(this.error || this.runtimeError), el => el.child(div().text_size(12).text_color(t.blocked).child(this.runtimeError || this.error)))
       .child(h_flex().gap(8).items_center().text_size(11).text_color(t.dim)
-        .child(div().flex_none().child(this.indexing ? 'Searching folders…' : `${rows.length}${rows.length === 60 ? '+' : ''} ${this.query ? 'matches' : 'folders'}`))
+        .child(div().flex_none().child(this.indexing ? 'Searching folders…' : `${rows.length}${rows.length === LIMIT ? '+' : ''} ${this.query ? 'matches' : 'folders'}`))
         .when(Boolean(this.chosen && rows[this.at]), el => el.child(div().flex_1().truncate().text_color(t.foreground).child(display(rows[this.at].path, this.home))))
         .when(Boolean(this.indexLimited && !this.indexing && !this.chosen), el => el.child(div().flex_1().truncate().child('Search limited · type a path to browse further')))
         .child(div().flex_1())

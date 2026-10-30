@@ -7,17 +7,18 @@ import * as paths from '../mods/space-picker/paths.js';
 const source = (await readFile(new URL('../mods/space-picker/main.js', import.meta.url), 'utf8'))
   .replace(/^import .*;\n/gm, '').replace('export default class', 'return class');
 
-function controller() {
+function controller(overrides = {}) {
   const data = {};
   const commands = [];
   const closed = [];
   const bindings = {
-    ...paths, View: class {}, shared: key => data[key], setShared: (key, value) => { data[key] = value; },
+    ...paths, ...overrides, View: class {}, shared: key => data[key], setShared: (key, value) => { data[key] = value; },
     props: () => ({ overlay: 'picker-one' }), run: (...args) => commands.push(args), closeOverlay: id => closed.push(id),
   };
   const Picker = new Function(...Object.keys(bindings), source)(...Object.values(bindings));
   const picker = new Picker();
   Object.assign(picker, { home: '/home/user', query: '~/pro', matches: ['/home/user/project'], at: 0, index: [] });
+  picker.list = picker.buildRows();
   let pending;
   const cx = { notify() {}, spawn(fn) { pending = fn(cx); } };
   return { picker, cx, data, commands, closed, done: () => pending };
@@ -57,4 +58,17 @@ test('recents keep the chosen symlink path and deduplicate canonical identities'
   picker.open('/home/user/hq', cx);
   await done();
   assert.deepEqual(data['space-picker.recents'], ['/home/user/hq']);
+});
+
+test('search runs once per input change, never from selection, completion or render paths', () => {
+  const calls = [];
+  const { picker } = controller({ search: (...args) => { calls.push(args); return paths.search(...args); } });
+  picker.index = Array.from({ length: 20000 }, (_, i) => `/home/user/code/project-${i}`);
+  picker.query = 'project';
+  picker.list = picker.buildRows();
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][3], 60);
+  assert.equal(picker.list.length, 60);
+  picker.selected(); picker.selected();
+  assert.equal(calls.length, 1);
 });

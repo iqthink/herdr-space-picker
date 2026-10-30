@@ -44,3 +44,20 @@ test('fuzzy tokens cannot stitch letters across unrelated directory segments', (
   assert.deepEqual(search([home + '/water/stne'], 'waterstne', home), []);
   assert.deepEqual(search([home + '/project'], 'pj', home), []);
 });
+
+test('limited search returns the same top results as a full ranking over a large index', () => {
+  const index = Array.from({ length: 20000 }, (_, i) => `${home}/hq/group-${i % 97}/project-${i}`);
+  index.push(home + '/code/project', home + '/code/projcet-x');
+  const full = search(index, 'project', home);
+  assert.equal(full.length, 20001);
+  assert.deepEqual(search(index, 'project', home, 60), full.slice(0, 60));
+  assert.equal(full[0], home + '/code/project');
+  assert.deepEqual(search(index, 'projct', home, 5), search(index, 'projct', home).slice(0, 5));
+});
+
+test('limit keeps exact and prefix matches ahead of fuzzy ones regardless of input order', () => {
+  const fuzzy = Array.from({ length: 500 }, (_, i) => `${home}/a/waterstone-${i}`);
+  const literal = home + '/z/waterstne';
+  assert.equal(search([...fuzzy, literal], 'waterstne', home, 3)[0], literal);
+  assert.deepEqual(search([...fuzzy, literal], 'waterstne', home, 3).length, 3);
+});
