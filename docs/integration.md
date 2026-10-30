@@ -13,7 +13,7 @@ actions. The existing shared-state and command APIs can carry the configuration;
 Rust-core plugin framework is not the first thing to build.
 
 This is a proposal requiring upstream agreement. The default picker installation does not create an inline button. The mod is published at
-https://github.com/jeissonneira/herdr-space-picker and the discussion was submitted as
+https://github.com/iqthink/herdr-space-picker and the discussion was submitted as
 [issue #106](https://github.com/herdrdev/herdr-app/issues/106). No upstream implementation PR has been submitted.
 
 ## What the source establishes

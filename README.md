@@ -1,6 +1,6 @@
 # Herdr Space Picker
 
-Choose a folder before opening a new Herdr space. Search projects, complete paths, and save favorites and recent choices.
+An [iqthink](https://github.com/iqthink) mod for the Herdr desktop app. Choose a folder before opening a new Herdr space. Search projects, complete paths, and save favorites and recent choices.
 
 ![Folder picker favorites](preview.png)
 
@@ -12,7 +12,7 @@ Paste this into your coding agent:
 
 ```text
 Read ~/.config/herdr-app/AGENTS.md, then inspect
-https://github.com/jeissonneira/herdr-space-picker and install the mod
+https://github.com/iqthink/herdr-space-picker and install the mod
 using its RECIPE.md. Start with the standalone picker. Offer the optional
 + button integration from docs/plus-button.md if I want clickable access.
 Ask before changing an existing shortcut or creating a personal layout.
@@ -75,7 +75,7 @@ Restore the individual shortcut you changed, then remove `mods/space-picker/` fr
 
 ## Distribution
 
-This repository contains one mod, a recipe, a preview, and an optional keys snippet. Publish to GitHub with topic `herdr-mod` for Herdr's Mods directory. No custom layout is required. The public repository is https://github.com/jeissonneira/herdr-space-picker. Herdr discovers it through the herdr-mod GitHub topic; marketplace indexing is separate from publication. The proposed inline integration is tracked in [herdr-app#106](https://github.com/herdrdev/herdr-app/issues/106).
+This repository contains one mod, a recipe, a preview, and an optional keys snippet. Publish to GitHub with topic `herdr-mod` for Herdr's Mods directory. No custom layout is required. The public repository is https://github.com/iqthink/herdr-space-picker. Herdr discovers it through the herdr-mod GitHub topic; marketplace indexing is separate from publication. The proposed inline integration is tracked in [herdr-app#106](https://github.com/herdrdev/herdr-app/issues/106).
 
 ## License
 
